@@ -1,259 +1,292 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import "./ConfigureStepper.css";
 
-const styles = {
-  container: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '2rem',
-    color: '#e5e7eb',
-  },
-  card: {
-    background: '#0f172a',
-    borderRadius: '0.75rem',
-    padding: '1.5rem',
-    marginBottom: '2rem',
-    border: '1px solid rgba(255,255,255,0.08)',
-  },
-  input: {
-    width: '100%',
-    padding: '0.65rem 0.75rem',
-    marginBottom: '1rem',
-    borderRadius: '0.5rem',
-    border: '1px solid rgba(255,255,255,0.15)',
-    background: '#020617',
-    color: '#e5e7eb',
-    outline: 'none',
-  },
-  textarea: {
-    width: '100%',
-    padding: '0.65rem 0.75rem',
-    marginBottom: '1rem',
-    borderRadius: '0.5rem',
-    border: '1px solid rgba(255,255,255,0.15)',
-    background: '#020617',
-    color: '#e5e7eb',
-    outline: 'none',
-    resize: 'vertical',
-  },
-  button: {
-    width: '100%',
-    padding: '0.85rem',
-    borderRadius: '0.5rem',
-    border: 'none',
-    fontSize: '1.05rem',
-    fontWeight: '600',
-    cursor: 'pointer',
-    background: 'linear-gradient(to right, #3b82f6, #8b5cf6)',
-    color: 'white',
-  },
-  error: {
-    background: '#7f1d1d',
-    padding: '1rem',
-    borderRadius: '0.5rem',
-    marginBottom: '1rem',
-  },
-  sectionTitle: {
-    marginBottom: '1rem',
-  },
-  muted: {
-    color: '#94a3b8',
-    marginBottom: '1.5rem',
-  },
-};
 
-function Configure() {
+/* ================= STEPS ================= */
+const STEPS = [
+  "Repository",
+  "Personal",
+  "Hero",
+  "About",
+  "Experience",
+  "Projects",
+  "Contact",
+  "Review & Deploy",
+];
+
+function ConfigureStepper() {
   const { id: templateId } = useParams();
   const navigate = useNavigate();
 
-  const [template, setTemplate] = useState(null);
-  const [pageLoading, setPageLoading] = useState(true);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState({
-    repoName: '',
-    personal: {
-      name: '',
-      title: '',
-      email: '',
-      bio: '',
-    },
-    hero: {
-      description: '',
-    },
-    about: {
-      description: [''],
-      skills: [],
-    },
+  /* ================= DATA STATE ================= */
+
+  const [repoName, setRepoName] = useState("");
+
+  const [userImage, setUserImage] = useState(null);
+
+  const [personal, setPersonal] = useState({
+    name: "",
+    title: "",
+    email: "",
+    phone: "",
+    location: "",
+    website: "",
+    linkedin: "",
+    github: "",
+    bio: "",
   });
 
-  useEffect(() => {
-    axios
-      .get(`http://localhost:5000/api/templates/${templateId}`)
-      .then(res => setTemplate(res.data))
-      .catch(() => setError('Template not found'))
-      .finally(() => setPageLoading(false));
-  }, [templateId]);
+  const [hero, setHero] = useState({
+    greeting: "Hi, I'm",
+    description: "",
+    primaryButton: { text: "View My Work", link: "#projects" },
+    secondaryButton: { text: "Get In Touch", link: "#contact" },
+  });
 
-  const handleNestedChange = (section, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: { ...prev[section], [field]: value },
-    }));
+  const [about, setAbout] = useState({
+    description: [],
+    skills: [],
+  });
+
+  const [experiences, setExperiences] = useState([]);
+  const [projects, setProjects] = useState([]);
+
+  const [contact, setContact] = useState({
+    title: "Let's Work Together",
+    description: "",
+    socialLinks: [],
+  });
+
+  /* ================= HELPERS ================= */
+
+  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const prev = () => setStep((s) => Math.max(s - 1, 0));
+
+  /* ================= EXPERIENCE ================= */
+
+  const addExperience = () =>
+    setExperiences([
+      ...experiences,
+      {
+        company: "",
+        position: "",
+        duration: "",
+        location: "",
+        description: "",
+        achievements: [],
+        technologies: [],
+      },
+    ]);
+
+  const updateExperience = (i, field, value) => {
+    const copy = [...experiences];
+    copy[i][field] = value;
+    setExperiences(copy);
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
+  /* ================= PROJECTS ================= */
+
+  const addProject = () =>
+    setProjects([
+      ...projects,
+      {
+        title: "",
+        description: "",
+        technologies: [],
+        githubUrl: "",
+        liveUrl: "",
+        featured: false,
+        images: [],
+      },
+    ]);
+
+  const updateProject = (i, field, value) => {
+    const copy = [...projects];
+    copy[i][field] = value;
+    setProjects(copy);
+  };
+
+  const updateProjectImages = (i, files) => {
+    const copy = [...projects];
+    copy[i].images = Array.from(files);
+    setProjects(copy);
+  };
+
+  /* ================= SUBMIT ================= */
+
+  const handleDeploy = async () => {
     setLoading(true);
+    setError("");
 
     try {
+      const fd = new FormData();
+      fd.append("templateId", templateId);
+      fd.append("repoName", repoName);
+
+      fd.append(
+        "configData",
+        JSON.stringify({
+          personal,
+          hero,
+          about,
+          experience: experiences,
+          projects: projects.map((p) => ({ ...p, images: [] })),
+          contact,
+        })
+      );
+
+      if (userImage) fd.append("userImage", userImage);
+
+      projects.forEach((p) =>
+        p.images.forEach((img) => fd.append("projectImages", img))
+      );
+
       const res = await axios.post(
-        'http://localhost:5000/api/deploy',
-        {
-          templateId,
-          repoName: formData.repoName,
-          configData: formData,
-        },
+        "http://localhost:5000/api/deploy",
+        fd,
         { withCredentials: true }
       );
 
       navigate(`/deploy/${res.data.deploymentId}`);
     } catch {
-      setError('Deployment failed');
+      setError("Deployment failed");
     } finally {
       setLoading(false);
     }
   };
 
-  if (pageLoading) {
-    return <div style={{ textAlign: 'center', padding: '4rem' }}>Loading template...</div>;
-  }
-
-  if (!template) {
-    return <div style={{ textAlign: 'center', padding: '4rem' }}>Template not found</div>;
-  }
+  /* ================= STEP UI ================= */
 
   return (
-    <div style={styles.container}>
-      <h2>
-        Configure <span style={{ color: '#60a5fa' }}>{template.name}</span>
-      </h2>
-      <p style={styles.muted}>{template.description}</p>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "2rem" }}>
+      <h2>Configure Portfolio</h2>
+      <p>
+        Step {step + 1} / {STEPS.length} — <b>{STEPS[step]}</b>
+      </p>
 
-      {error && <div style={styles.error}>{error}</div>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem' }}>
-          <h3>🚀 Deploying your website…</h3>
-          <p style={styles.muted}>This may take 1–2 minutes</p>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          {/* Repo */}
-          <div style={styles.card}>
-            <h3 style={styles.sectionTitle}>Repository</h3>
-            <input
-              style={styles.input}
-              required
-              placeholder="Repository name (my-portfolio)"
-              value={formData.repoName}
-              onChange={e =>
-                setFormData(prev => ({ ...prev, repoName: e.target.value }))
-              }
-            />
-          </div>
+      {/* ================= STEP CONTENT ================= */}
 
-          {/* Personal */}
-          <div style={styles.card}>
-            <h3 style={styles.sectionTitle}>Personal Information</h3>
-
-            <input
-              style={styles.input}
-              placeholder="Full Name"
-              value={formData.personal.name}
-              onChange={e => handleNestedChange('personal', 'name', e.target.value)}
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Title"
-              value={formData.personal.title}
-              onChange={e => handleNestedChange('personal', 'title', e.target.value)}
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Email"
-              value={formData.personal.email}
-              onChange={e => handleNestedChange('personal', 'email', e.target.value)}
-            />
-
-            <textarea
-              style={styles.textarea}
-              rows="3"
-              placeholder="Short bio"
-              value={formData.personal.bio}
-              onChange={e => handleNestedChange('personal', 'bio', e.target.value)}
-            />
-          </div>
-
-          {/* Hero */}
-          <div style={styles.card}>
-            <h3 style={styles.sectionTitle}>Hero Section</h3>
-            <textarea
-              style={styles.textarea}
-              rows="3"
-              placeholder="Hero description"
-              value={formData.hero.description}
-              onChange={e => handleNestedChange('hero', 'description', e.target.value)}
-            />
-          </div>
-
-          {/* About */}
-          <div style={styles.card}>
-            <h3 style={styles.sectionTitle}>About Section</h3>
-
-            <textarea
-              style={styles.textarea}
-              rows="4"
-              placeholder="About paragraphs (one per line)"
-              value={formData.about.description.join('\n')}
-              onChange={e =>
-                setFormData(prev => ({
-                  ...prev,
-                  about: {
-                    ...prev.about,
-                    description: e.target.value.split('\n'),
-                  },
-                }))
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Skills (comma separated)"
-              value={formData.about.skills.join(', ')}
-              onChange={e =>
-                setFormData(prev => ({
-                  ...prev,
-                  about: {
-                    ...prev.about,
-                    skills: e.target.value.split(',').map(s => s.trim()),
-                  },
-                }))
-              }
-            />
-          </div>
-
-          <button type="submit" style={styles.button}>
-            Deploy Website
-          </button>
-        </form>
+      {step === 0 && (
+        <>
+          <input
+            placeholder="Repository name"
+            value={repoName}
+            onChange={(e) => setRepoName(e.target.value)}
+          />
+        </>
       )}
+
+      {step === 1 && (
+        <>
+          <input placeholder="Name" onChange={(e) => setPersonal({ ...personal, name: e.target.value })} />
+          <input placeholder="Title" onChange={(e) => setPersonal({ ...personal, title: e.target.value })} />
+          <input placeholder="Email" onChange={(e) => setPersonal({ ...personal, email: e.target.value })} />
+          <input placeholder="Phone" onChange={(e) => setPersonal({ ...personal, phone: e.target.value })} />
+          <input placeholder="Location" onChange={(e) => setPersonal({ ...personal, location: e.target.value })} />
+          <input placeholder="Website" onChange={(e) => setPersonal({ ...personal, website: e.target.value })} />
+          <input placeholder="LinkedIn" onChange={(e) => setPersonal({ ...personal, linkedin: e.target.value })} />
+          <input placeholder="GitHub" onChange={(e) => setPersonal({ ...personal, github: e.target.value })} />
+          <textarea placeholder="Bio" onChange={(e) => setPersonal({ ...personal, bio: e.target.value })} />
+
+          <input type="file" accept="image/*" onChange={(e) => setUserImage(e.target.files[0])} />
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <input placeholder="Greeting" onChange={(e) => setHero({ ...hero, greeting: e.target.value })} />
+          <textarea placeholder="Hero description" onChange={(e) => setHero({ ...hero, description: e.target.value })} />
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <textarea
+            placeholder="About (one paragraph per line)"
+            onChange={(e) =>
+              setAbout({ ...about, description: e.target.value.split("\n") })
+            }
+          />
+          <input
+            placeholder="Skills (comma separated)"
+            onChange={(e) =>
+              setAbout({
+                ...about,
+                skills: e.target.value.split(",").map((s) => s.trim()),
+              })
+            }
+          />
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          {experiences.map((exp, i) => (
+            <div key={i}>
+              <input placeholder="Company" onChange={(e) => updateExperience(i, "company", e.target.value)} />
+              <input placeholder="Position" onChange={(e) => updateExperience(i, "position", e.target.value)} />
+              <input placeholder="Duration" onChange={(e) => updateExperience(i, "duration", e.target.value)} />
+              <textarea placeholder="Description" onChange={(e) => updateExperience(i, "description", e.target.value)} />
+            </div>
+          ))}
+          <button type="button" onClick={addExperience}>+ Add Experience</button>
+        </>
+      )}
+
+      {step === 5 && (
+        <>
+          {projects.map((p, i) => (
+            <div key={i}>
+              <input placeholder="Title" onChange={(e) => updateProject(i, "title", e.target.value)} />
+              <textarea placeholder="Description" onChange={(e) => updateProject(i, "description", e.target.value)} />
+              <input placeholder="GitHub URL" onChange={(e) => updateProject(i, "githubUrl", e.target.value)} />
+              <input placeholder="Live URL" onChange={(e) => updateProject(i, "liveUrl", e.target.value)} />
+              <input type="file" multiple accept="image/*" onChange={(e) => updateProjectImages(i, e.target.files)} />
+            </div>
+          ))}
+          <button type="button" onClick={addProject}>+ Add Project</button>
+        </>
+      )}
+
+      {step === 6 && (
+        <>
+          <input placeholder="Contact Title" onChange={(e) => setContact({ ...contact, title: e.target.value })} />
+          <textarea placeholder="Contact Description" onChange={(e) => setContact({ ...contact, description: e.target.value })} />
+        </>
+      )}
+
+      {step === 7 && (
+        <>
+          <pre style={{ background: "#111", padding: "1rem" }}>
+            {JSON.stringify(
+              { personal, hero, about, experiences, projects, contact },
+              null,
+              2
+            )}
+          </pre>
+        </>
+      )}
+
+      {/* ================= NAV ================= */}
+      <div style={{ marginTop: "1rem" }}>
+        {step > 0 && <button onClick={prev}>Back</button>}
+        {step < STEPS.length - 1 && <button onClick={next}>Next</button>}
+        {step === STEPS.length - 1 && (
+          <button onClick={handleDeploy} disabled={loading}>
+            {loading ? "Deploying..." : "🚀 Deploy"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-export default Configure;
+export default ConfigureStepper;

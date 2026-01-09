@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
-import Configure from "./pages/Configure";
 import DeploymentStatus from "./pages/DeploymentStatus";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
 import AuthSuccess from "./components/AuthSuccess";
+import ConfigureStepper from "./pages/Configure";
 
 function App() {
   return (
@@ -22,7 +22,7 @@ function App() {
             path="/configure/:id"  
             element={
               <ProtectedRoute>
-                <Configure />
+                <ConfigureStepper />
               </ProtectedRoute>
             }
           />
